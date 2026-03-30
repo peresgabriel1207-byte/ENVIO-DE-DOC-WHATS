@@ -1,0 +1,11 @@
+.env
+__pycache__/
+*.pyc
+documentos_envio/*
+!documentos_envio/.gitkeep
+documentos_enviados/*
+!documentos_enviados/.gitkeep
+logs/*.csv
+!logs/.gitkeep
+venv/
+.venv/
