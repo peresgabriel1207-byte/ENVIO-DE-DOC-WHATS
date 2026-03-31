@@ -1,0 +1,175 @@
+{% extends "base.html" %}
+{% block title %}Configuracoes - DocSender{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Configuracoes</h2>
+    <p>Configure email, WhatsApp e pastas do sistema</p>
+</div>
+
+<!-- Status Geral -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="p-3 rounded d-flex align-items-center gap-3"
+             style="background: {% if config.email_configurado %}#d1fae5{% else %}#fef2f2{% endif %};">
+            <i class="bi bi-envelope-check" style="font-size: 1.5rem; color: {% if config.email_configurado %}#065f46{% else %}#991b1b{% endif %};"></i>
+            <div>
+                <div class="fw-600">Email</div>
+                <small>{% if config.email_configurado %}Configurado{% else %}Nao configurado{% endif %}</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="p-3 rounded d-flex align-items-center gap-3"
+             style="background: {% if api_online %}#d1fae5{% else %}#fef2f2{% endif %};">
+            <i class="bi bi-whatsapp" style="font-size: 1.5rem; color: {% if api_online %}#065f46{% else %}#991b1b{% endif %};"></i>
+            <div>
+                <div class="fw-600">WhatsApp API</div>
+                <small>{% if conexao.conectado %}Conectado{% elif api_online %}Online (nao conectado){% else %}Offline{% endif %}</small>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="p-3 rounded d-flex align-items-center gap-3" style="background: #d1fae5;">
+            <i class="bi bi-folder-check" style="font-size: 1.5rem; color: #065f46;"></i>
+            <div>
+                <div class="fw-600">Pastas</div>
+                <small>Configuradas</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form method="POST" action="{{ url_for('salvar_configuracoes') }}">
+    <div class="row g-4">
+        <!-- Email -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-envelope me-2"></i>Configuracao de Email (SMTP)
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-500">Servidor SMTP</label>
+                        <input type="text" class="form-control" name="email_host"
+                               value="{{ config.email_host }}" placeholder="smtp.gmail.com">
+                        <small class="text-muted">Gmail: smtp.gmail.com | Outlook: smtp.office365.com</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-500">Porta</label>
+                        <input type="text" class="form-control" name="email_port"
+                               value="{{ config.email_port }}" placeholder="587">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-500">Email do Remetente</label>
+                        <input type="email" class="form-control" name="email_remetente"
+                               value="{{ config.email_remetente }}" placeholder="seuemail@gmail.com">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-500">Senha do Email</label>
+                        <input type="password" class="form-control" name="email_senha"
+                               placeholder="{% if config.email_configurado %}(senha ja configurada){% else %}Sua senha de app{% endif %}">
+                        <small class="text-muted">Para Gmail, use uma Senha de App (nao a senha normal)</small>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-500">Nome do Remetente</label>
+                        <input type="text" class="form-control" name="email_nome"
+                               value="{{ config.email_nome }}" placeholder="Contabilidade XYZ">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dica Gmail -->
+            <div class="card mt-3 border-0" style="background: #eef2ff;">
+                <div class="card-body" style="font-size: 0.85rem;">
+                    <h6 class="fw-600 text-primary"><i class="bi bi-info-circle me-1"></i>Como usar com Gmail</h6>
+                    <ol class="mb-0 text-muted">
+                        <li>Acesse myaccount.google.com/security</li>
+                        <li>Ative "Verificacao em duas etapas"</li>
+                        <li>Busque "Senhas de app"</li>
+                        <li>Crie uma senha para "Outro"</li>
+                        <li>Use essa senha no campo acima</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+
+        <!-- WhatsApp -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <i class="bi bi-whatsapp me-2"></i>Configuracao do WhatsApp
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-500">URL da Evolution API</label>
+                        <input type="text" class="form-control" name="whatsapp_url"
+                               value="{{ config.whatsapp_url }}" placeholder="http://localhost:8080">
+                        <small class="text-muted">Se estiver usando Docker local, mantenha localhost:8080</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-500">Chave da API</label>
+                        <input type="text" class="form-control" name="whatsapp_key"
+                               placeholder="{% if config.whatsapp_configurado %}(ja configurada){% else %}SuaChaveSegura123{% endif %}">
+                        <small class="text-muted">Mesma chave definida no docker-compose.yml</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-500">Nome da Instancia</label>
+                        <input type="text" class="form-control" name="whatsapp_instance"
+                               value="{{ config.whatsapp_instance }}" placeholder="robo-contabilidade">
+                    </div>
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="fw-500">Status da conexao</div>
+                            <small class="text-muted">
+                                {% if conexao.conectado %}
+                                    WhatsApp conectado e pronto
+                                {% elif api_online %}
+                                    API online, WhatsApp nao conectado
+                                {% else %}
+                                    API offline
+                                {% endif %}
+                            </small>
+                        </div>
+                        <a href="{{ url_for('whatsapp_page') }}" class="btn btn-sm btn-outline-primary">
+                            {% if conexao.conectado %}
+                                <i class="bi bi-check-circle me-1"></i>Conectado
+                            {% else %}
+                                <i class="bi bi-qr-code me-1"></i>Conectar
+                            {% endif %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pastas -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <i class="bi bi-folder me-2"></i>Pastas
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-500">Pasta Monitorada (entrada)</label>
+                        <input type="text" class="form-control bg-light" value="{{ config.pasta_entrada }}" disabled>
+                        <small class="text-muted">Altere no arquivo .env se necessario</small>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label fw-500">Pasta de Enviados</label>
+                        <input type="text" class="form-control bg-light" value="{{ config.pasta_enviados }}" disabled>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Botao Salvar -->
+    <div class="mt-4">
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="bi bi-check-lg me-1"></i>Salvar Configuracoes
+        </button>
+    </div>
+</form>
+{% endblock %}

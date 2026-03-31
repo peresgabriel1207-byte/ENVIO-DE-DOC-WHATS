@@ -293,8 +293,17 @@
         <a href="{{ url_for('clientes_page') }}" class="nav-link {% if request.endpoint == 'clientes_page' %}active{% endif %}">
             <i class="bi bi-people"></i> Clientes
         </a>
-        <a href="{{ url_for('log_page') }}" class="nav-link {% if request.endpoint == 'log_page' %}active{% endif %}">
+        <a href="{{ url_for('log_page') }}" class="nav-link {% if request.endpoint in ('log_page', 'relatorio_page') %}active{% endif %}">
             <i class="bi bi-journal-text"></i> Log de Envios
+        </a>
+
+        <div style="border-top: 1px solid rgba(255,255,255,0.08); margin: 12px 0;"></div>
+
+        <a href="{{ url_for('whatsapp_page') }}" class="nav-link {% if request.endpoint == 'whatsapp_page' %}active{% endif %}">
+            <i class="bi bi-whatsapp"></i> WhatsApp
+        </a>
+        <a href="{{ url_for('configuracoes_page') }}" class="nav-link {% if request.endpoint == 'configuracoes_page' %}active{% endif %}">
+            <i class="bi bi-gear"></i> Configuracoes
         </a>
     </div>
     <div class="position-absolute bottom-0 w-100 p-3" style="border-top: 1px solid rgba(255,255,255,0.1);">

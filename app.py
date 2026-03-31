@@ -36,6 +36,7 @@ from src.document_analyzer import analisar_documento
 from src.email_sender import enviar_email
 from src.whatsapp_sender import enviar_whatsapp
 from src.audit_log import registrar_envio, registrar_erro, obter_registros, obter_registro_por_id, obter_estatisticas
+from src.whatsapp_manager import verificar_api_online, criar_instancia, obter_qrcode, verificar_conexao, desconectar
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
@@ -288,6 +289,112 @@ def toggle_robo():
         flash("Robo iniciado!", "success")
 
     return redirect(url_for("dashboard"))
+
+
+# =============================================================
+# WHATSAPP - Conexao local
+# =============================================================
+
+
+@app.route("/whatsapp")
+def whatsapp_page():
+    """Pagina de conexao e gerenciamento do WhatsApp."""
+    api_online = verificar_api_online()
+    conexao = verificar_conexao() if api_online else {"conectado": False, "estado": "api_offline"}
+    return render_template("whatsapp.html", api_online=api_online, conexao=conexao)
+
+
+@app.route("/whatsapp/conectar", methods=["POST"])
+def whatsapp_conectar():
+    """Cria instancia e retorna QR Code."""
+    # Tentar criar instancia (se ja existe, pega o QR)
+    criar_instancia()
+    qr = obter_qrcode()
+    return jsonify(qr)
+
+
+@app.route("/whatsapp/status")
+def whatsapp_status():
+    """Retorna status da conexao (polling via AJAX)."""
+    conexao = verificar_conexao()
+    return jsonify(conexao)
+
+
+@app.route("/whatsapp/desconectar", methods=["POST"])
+def whatsapp_desconectar():
+    """Desconecta o WhatsApp."""
+    desconectar()
+    flash("WhatsApp desconectado.", "warning")
+    return redirect(url_for("whatsapp_page"))
+
+
+# =============================================================
+# CONFIGURACOES
+# =============================================================
+
+
+@app.route("/configuracoes")
+def configuracoes_page():
+    """Pagina de configuracoes do sistema."""
+    config = {
+        "email_host": os.getenv("EMAIL_SMTP_HOST", ""),
+        "email_port": os.getenv("EMAIL_SMTP_PORT", ""),
+        "email_remetente": os.getenv("EMAIL_REMETENTE", ""),
+        "email_nome": os.getenv("EMAIL_NOME_REMETENTE", ""),
+        "email_configurado": bool(os.getenv("EMAIL_REMETENTE") and os.getenv("EMAIL_SENHA")),
+        "whatsapp_url": os.getenv("WHATSAPP_API_URL", ""),
+        "whatsapp_instance": os.getenv("WHATSAPP_INSTANCE", ""),
+        "whatsapp_configurado": bool(os.getenv("WHATSAPP_API_KEY")),
+        "pasta_entrada": PASTA_ENTRADA,
+        "pasta_enviados": PASTA_ENVIADOS,
+    }
+    api_online = verificar_api_online()
+    conexao = verificar_conexao() if api_online else {"conectado": False}
+    return render_template("configuracoes.html", config=config, api_online=api_online, conexao=conexao)
+
+
+@app.route("/configuracoes/salvar", methods=["POST"])
+def salvar_configuracoes():
+    """Salva configuracoes no .env"""
+    campos = {
+        "EMAIL_SMTP_HOST": request.form.get("email_host", "").strip(),
+        "EMAIL_SMTP_PORT": request.form.get("email_port", "").strip(),
+        "EMAIL_REMETENTE": request.form.get("email_remetente", "").strip(),
+        "EMAIL_SENHA": request.form.get("email_senha", "").strip(),
+        "EMAIL_NOME_REMETENTE": request.form.get("email_nome", "").strip(),
+        "WHATSAPP_API_URL": request.form.get("whatsapp_url", "").strip(),
+        "WHATSAPP_API_KEY": request.form.get("whatsapp_key", "").strip(),
+        "WHATSAPP_INSTANCE": request.form.get("whatsapp_instance", "").strip(),
+    }
+
+    # Ler .env atual
+    env_path = os.path.join(os.path.dirname(__file__), ".env")
+    linhas = []
+    if os.path.exists(env_path):
+        with open(env_path, "r", encoding="utf-8") as f:
+            linhas = f.readlines()
+
+    # Atualizar valores
+    for chave, valor in campos.items():
+        if not valor:
+            continue
+        encontrou = False
+        for i, linha in enumerate(linhas):
+            if linha.strip().startswith(f"{chave}="):
+                linhas[i] = f"{chave}={valor}\n"
+                encontrou = True
+                break
+        if not encontrou:
+            linhas.append(f"{chave}={valor}\n")
+
+        # Atualizar no ambiente atual tambem
+        os.environ[chave] = valor
+
+    with open(env_path, "w", encoding="utf-8") as f:
+        f.writelines(linhas)
+
+    flash("Configuracoes salvas! As alteracoes ja estao ativas.", "success")
+    return redirect(url_for("configuracoes_page"))
 
 
 # =============================================================

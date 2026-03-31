@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block title %}WhatsApp - DocSender{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h2>Conexao WhatsApp</h2>
+    <p>Conecte seu WhatsApp para enviar documentos automaticamente</p>
+</div>
+
+<div class="row g-4">
+    <!-- Status da API -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-server me-2"></i>Status do Servidor
+            </div>
+            <div class="card-body">
+                <!-- API Status -->
+                <div class="d-flex align-items-center justify-content-between mb-3 p-3 rounded"
+                     style="background: {% if api_online %}#d1fae5{% else %}#fef2f2{% endif %};">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="pulse {% if api_online %}ativo{% else %}inativo{% endif %}"></span>
+                        <strong>Evolution API</strong>
+                    </div>
+                    {% if api_online %}
+                        <span class="badge-status badge-enviado">Online</span>
+                    {% else %}
+                        <span class="badge-status badge-falha">Offline</span>
+                    {% endif %}
+                </div>
+
+                {% if not api_online %}
+                <div class="alert alert-danger">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <strong>API do WhatsApp nao esta rodando!</strong>
+                    <p class="mb-2 mt-1">Para iniciar, abra o Prompt de Comando na pasta do projeto e execute:</p>
+                    <code class="d-block p-2 bg-dark text-white rounded">docker compose up -d</code>
+                    <p class="mb-0 mt-2"><small>Precisa ter o Docker Desktop instalado e aberto.</small></p>
+                </div>
+                {% endif %}
+
+                <!-- WhatsApp Status -->
+                <div class="d-flex align-items-center justify-content-between p-3 rounded"
+                     style="background: {% if conexao.conectado %}#d1fae5{% else %}#f1f5f9{% endif %};">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-whatsapp" style="font-size: 1.2rem;"></i>
+                        <strong>WhatsApp</strong>
+                    </div>
+                    {% if conexao.conectado %}
+                        <span class="badge-status badge-enviado">Conectado</span>
+                    {% elif conexao.estado == 'nao_criada' %}
+                        <span class="badge-status badge-inativo">Nao configurado</span>
+                    {% else %}
+                        <span class="badge-status badge-falha">Desconectado</span>
+                    {% endif %}
+                </div>
+
+                {% if conexao.conectado %}
+                <div class="mt-4 text-center">
+                    <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                         style="width: 80px; height: 80px; background: #d1fae5;">
+                        <i class="bi bi-check-lg" style="font-size: 2.5rem; color: #065f46;"></i>
+                    </div>
+                    <h5 class="fw-700 text-success">WhatsApp Conectado!</h5>
+                    <p class="text-muted">O robo esta pronto para enviar documentos por WhatsApp.</p>
+                    <form method="POST" action="{{ url_for('whatsapp_desconectar') }}">
+                        <button type="submit" class="btn btn-outline-danger btn-sm"
+                                onclick="return confirm('Tem certeza que deseja desconectar?')">
+                            <i class="bi bi-power me-1"></i>Desconectar
+                        </button>
+                    </form>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- QR Code -->
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="bi bi-qr-code me-2"></i>Conectar WhatsApp
+            </div>
+            <div class="card-body text-center">
+                {% if conexao.conectado %}
+                    <div class="py-5 text-muted">
+                        <i class="bi bi-check-circle" style="font-size: 3rem; color: var(--cor-sucesso);"></i>
+                        <p class="mt-2 mb-0">Ja esta conectado!</p>
+                    </div>
+                {% elif not api_online %}
+                    <div class="py-5 text-muted">
+                        <i class="bi bi-wifi-off" style="font-size: 3rem;"></i>
+                        <p class="mt-2 mb-0">Inicie a API primeiro</p>
+                    </div>
+                {% else %}
+                    <!-- QR Code Area -->
+                    <div id="qrArea">
+                        <div id="qrInicial" class="py-4">
+                            <i class="bi bi-phone" style="font-size: 3rem; color: var(--cor-primaria);"></i>
+                            <p class="mt-2 mb-3 text-muted">
+                                Clique no botao abaixo e escaneie o QR Code<br>
+                                com o WhatsApp do seu celular.
+                            </p>
+                            <button class="btn btn-primary btn-lg" onclick="gerarQRCode()">
+                                <i class="bi bi-qr-code me-2"></i>Gerar QR Code
+                            </button>
+                        </div>
+
+                        <div id="qrLoading" style="display: none;" class="py-4">
+                            <div class="spinner-border text-primary" role="status"></div>
+                            <p class="mt-2 text-muted">Gerando QR Code...</p>
+                        </div>
+
+                        <div id="qrImage" style="display: none;" class="py-3">
+                            <img id="qrImg" src="" alt="QR Code" style="max-width: 280px; border-radius: 12px;">
+                            <p class="mt-3 mb-1 fw-600">Escaneie com seu celular</p>
+                            <p class="text-muted" style="font-size: 0.85rem;">
+                                WhatsApp > Menu > Aparelhos conectados > Conectar
+                            </p>
+                            <div id="statusConexao" class="mt-2">
+                                <div class="spinner-border spinner-border-sm text-primary me-1"></div>
+                                <small class="text-muted">Aguardando escaneamento...</small>
+                            </div>
+                        </div>
+
+                        <div id="qrConectado" style="display: none;" class="py-4">
+                            <div class="rounded-circle d-inline-flex align-items-center justify-content-center mb-3"
+                                 style="width: 80px; height: 80px; background: #d1fae5;">
+                                <i class="bi bi-check-lg" style="font-size: 2.5rem; color: #065f46;"></i>
+                            </div>
+                            <h5 class="fw-700 text-success">Conectado com sucesso!</h5>
+                            <p class="text-muted">O WhatsApp foi vinculado ao robo.</p>
+                            <a href="{{ url_for('dashboard') }}" class="btn btn-success">
+                                <i class="bi bi-grid me-1"></i>Ir para o Dashboard
+                            </a>
+                        </div>
+
+                        <div id="qrErro" style="display: none;" class="py-4">
+                            <i class="bi bi-exclamation-triangle text-danger" style="font-size: 2.5rem;"></i>
+                            <p class="mt-2 text-danger fw-600" id="qrErroMsg"></p>
+                            <button class="btn btn-outline-primary" onclick="gerarQRCode()">Tentar Novamente</button>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Instrucoes -->
+        <div class="card mt-3 border-0" style="background: #eef2ff;">
+            <div class="card-body">
+                <h6 class="fw-600 text-primary"><i class="bi bi-info-circle me-1"></i>Como conectar</h6>
+                <ol class="mb-0" style="font-size: 0.85rem; color: var(--cor-texto-leve);">
+                    <li class="mb-1">Clique em "Gerar QR Code"</li>
+                    <li class="mb-1">Abra o WhatsApp no celular</li>
+                    <li class="mb-1">Va em Menu (3 pontos) > Aparelhos conectados</li>
+                    <li class="mb-1">Toque em "Conectar um aparelho"</li>
+                    <li>Escaneie o QR Code que aparece na tela</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let checkInterval = null;
+
+    function gerarQRCode() {
+        document.getElementById('qrInicial').style.display = 'none';
+        document.getElementById('qrLoading').style.display = 'block';
+        document.getElementById('qrImage').style.display = 'none';
+        document.getElementById('qrConectado').style.display = 'none';
+        document.getElementById('qrErro').style.display = 'none';
+
+        fetch('/whatsapp/conectar', { method: 'POST' })
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('qrLoading').style.display = 'none';
+                if (data.sucesso && data.qr_base64) {
+                    let src = data.qr_base64;
+                    if (!src.startsWith('data:')) src = 'data:image/png;base64,' + src;
+                    document.getElementById('qrImg').src = src;
+                    document.getElementById('qrImage').style.display = 'block';
+                    iniciarCheckStatus();
+                } else {
+                    document.getElementById('qrErro').style.display = 'block';
+                    document.getElementById('qrErroMsg').textContent = data.mensagem || 'Erro ao gerar QR Code';
+                }
+            })
+            .catch(err => {
+                document.getElementById('qrLoading').style.display = 'none';
+                document.getElementById('qrErro').style.display = 'block';
+                document.getElementById('qrErroMsg').textContent = 'Erro de conexao: ' + err;
+            });
+    }
+
+    function iniciarCheckStatus() {
+        if (checkInterval) clearInterval(checkInterval);
+        checkInterval = setInterval(() => {
+            fetch('/whatsapp/status')
+                .then(r => r.json())
+                .then(data => {
+                    if (data.conectado) {
+                        clearInterval(checkInterval);
+                        document.getElementById('qrImage').style.display = 'none';
+                        document.getElementById('qrConectado').style.display = 'block';
+                    }
+                });
+        }, 3000);
+    }
+</script>
+{% endblock %}
