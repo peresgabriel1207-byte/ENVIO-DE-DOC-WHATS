@@ -22,7 +22,8 @@ if sys.platform == "win32":
 else:
     from watchdog.observers import Observer
 
-from src.cnpj_extractor import identificar_destinatario
+from src.cnpj_extractor import identificar_destinatario, buscar_cliente_por_cnpj, carregar_clientes
+from src.document_analyzer import analisar_documento
 from src.email_sender import enviar_email
 from src.whatsapp_sender import enviar_whatsapp
 from src.audit_log import registrar_envio, registrar_erro
@@ -99,8 +100,21 @@ class DocumentHandler(FileSystemEventHandler):
         print(f"  Arquivo: {nome_arquivo}")
         print(f"{'='*60}")
 
-        # 1. Identificar destinatario pelo CNPJ no nome do arquivo
+        # 1. Identificar destinatario - primeiro pelo nome, depois pelo conteudo
         cliente = identificar_destinatario(nome_arquivo, self.caminho_clientes)
+
+        if cliente:
+            print(f"  [OK] CNPJ encontrado no nome do arquivo")
+        else:
+            # Tentar analisar o conteudo do documento
+            print(f"  [INFO] CNPJ nao encontrado no nome, analisando conteudo...")
+            analise = analisar_documento(caminho)
+            if analise["cnpj_principal"]:
+                print(f"  [OK] CNPJ encontrado no conteudo: {analise['cnpj_principal']}")
+                clientes_lista = carregar_clientes(self.caminho_clientes)
+                cliente = buscar_cliente_por_cnpj(analise["cnpj_principal"], clientes_lista)
+                if cliente:
+                    cliente["cnpj_extraido"] = analise["cnpj_principal"]
 
         if not cliente:
             msg = f"CNPJ nao encontrado ou cliente nao cadastrado para: {nome_arquivo}"

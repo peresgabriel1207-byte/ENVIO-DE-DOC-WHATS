@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block title %}Relatorio de Envio - DocSender{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <a href="{{ url_for('log_page') }}" class="text-muted text-decoration-none" style="font-size: 0.85rem;">
+        <i class="bi bi-arrow-left me-1"></i>Voltar ao Log
+    </a>
+    <h2 class="mt-2">Relatorio de Envio</h2>
+</div>
+
+<!-- Card Principal -->
+<div class="card mb-4">
+    <div class="card-body p-4">
+        <div class="row align-items-center">
+            <!-- Status Grande -->
+            <div class="col-auto">
+                {% if r.status_geral == 'sucesso' %}
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                         style="width: 72px; height: 72px; background: #d1fae5;">
+                        <i class="bi bi-check-lg" style="font-size: 2rem; color: #065f46;"></i>
+                    </div>
+                {% elif r.status_geral == 'parcial' %}
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                         style="width: 72px; height: 72px; background: #fef3c7;">
+                        <i class="bi bi-exclamation-lg" style="font-size: 2rem; color: #92400e;"></i>
+                    </div>
+                {% else %}
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                         style="width: 72px; height: 72px; background: #fef2f2;">
+                        <i class="bi bi-x-lg" style="font-size: 2rem; color: #991b1b;"></i>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Info -->
+            <div class="col">
+                <h4 class="fw-700 mb-1">
+                    {% if r.status_geral == 'sucesso' %}
+                        Documento enviado com sucesso!
+                    {% elif r.status_geral == 'parcial' %}
+                        Envio parcial - apenas um canal funcionou
+                    {% elif r.status_geral == 'erro' %}
+                        Nao foi possivel enviar
+                    {% else %}
+                        Falha no envio
+                    {% endif %}
+                </h4>
+                <p class="text-muted mb-0">
+                    {{ r.data_hora }}
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Detalhes -->
+<div class="row g-4">
+    <!-- Documento e Cliente -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-file-earmark me-2"></i>Documento
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Arquivo</label>
+                    <div class="fw-600">{{ r.arquivo }}</div>
+                </div>
+                {% if r.cnpj %}
+                <div class="mb-3">
+                    <label class="text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">CNPJ</label>
+                    <div>
+                        <code style="font-size: 1rem;">
+                            {% set cn = r.cnpj %}
+                            {% if cn|length == 14 %}
+                                {{ cn[:2] }}.{{ cn[2:5] }}.{{ cn[5:8] }}/{{ cn[8:12] }}-{{ cn[12:14] }}
+                            {% else %}
+                                {{ cn }}
+                            {% endif %}
+                        </code>
+                    </div>
+                </div>
+                {% endif %}
+                {% if r.nome_cliente %}
+                <div>
+                    <label class="text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Cliente</label>
+                    <div class="fw-600" style="font-size: 1.1rem;">{{ r.nome_cliente }}</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Resumo de Envio -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header">
+                <i class="bi bi-send me-2"></i>Resumo do Envio
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Data e Hora</label>
+                    <div class="fw-500">{{ r.data_hora }}</div>
+                </div>
+                <div class="mb-3">
+                    <label class="text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">ID do Registro</label>
+                    <div><code>{{ r.id }}</code></div>
+                </div>
+                <div>
+                    <label class="text-muted" style="font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.05em;">Status Geral</label>
+                    <div>
+                        {% if r.status_geral == 'sucesso' %}
+                            <span class="badge-status badge-enviado" style="font-size: 0.9rem;">Sucesso</span>
+                        {% elif r.status_geral == 'parcial' %}
+                            <span class="badge-status" style="background: #fef3c7; color: #92400e; font-size: 0.9rem;">Parcial</span>
+                        {% else %}
+                            <span class="badge-status badge-falha" style="font-size: 0.9rem;">Falha</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Status por Canal -->
+<div class="row g-4 mt-1">
+    <!-- Email -->
+    <div class="col-md-6">
+        <div class="card h-100 {% if r.email.enviado %}border-success{% elif r.email.erro %}border-danger{% endif %}" style="border-width: 2px;">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-envelope me-2"></i>Email</span>
+                {% if r.email.enviado %}
+                    <span class="badge-status badge-enviado">ENVIADO</span>
+                {% elif r.email.erro %}
+                    <span class="badge-status badge-falha">FALHA</span>
+                {% else %}
+                    <span class="badge-status badge-inativo">NAO ENVIADO</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if r.email.destino %}
+                <div class="mb-3">
+                    <label class="text-muted" style="font-size: 0.75rem; text-transform: uppercase;">Destinatario</label>
+                    <div class="fw-500">{{ r.email.destino }}</div>
+                </div>
+                {% endif %}
+
+                {% if r.email.enviado %}
+                    <div class="p-3 rounded" style="background: #d1fae5;">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <strong>Email entregue com sucesso</strong>
+                        <p class="mb-0 mt-1 text-muted" style="font-size: 0.85rem;">
+                            O documento foi enviado para a caixa de entrada do destinatario.
+                        </p>
+                    </div>
+                {% elif r.email.erro %}
+                    <div class="p-3 rounded" style="background: #fef2f2;">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-x-circle-fill text-danger mt-1"></i>
+                            <div>
+                                <strong class="text-danger">{{ r.email.erro.titulo }}</strong>
+                                <p class="mb-2 mt-1" style="font-size: 0.9rem;">
+                                    {{ r.email.erro.explicacao }}
+                                </p>
+                                <div class="p-2 rounded" style="background: #fff; border: 1px solid #fecaca;">
+                                    <i class="bi bi-lightbulb text-warning me-1"></i>
+                                    <strong style="font-size: 0.85rem;">Como resolver:</strong>
+                                    <p class="mb-0 mt-1" style="font-size: 0.85rem;">
+                                        {{ r.email.erro.solucao }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- WhatsApp -->
+    <div class="col-md-6">
+        <div class="card h-100 {% if r.whatsapp.enviado %}border-success{% elif r.whatsapp.erro %}border-danger{% endif %}" style="border-width: 2px;">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-whatsapp me-2"></i>WhatsApp</span>
+                {% if r.whatsapp.enviado %}
+                    <span class="badge-status badge-enviado">ENVIADO</span>
+                {% elif r.whatsapp.erro %}
+                    <span class="badge-status badge-falha">FALHA</span>
+                {% else %}
+                    <span class="badge-status badge-inativo">NAO ENVIADO</span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if r.whatsapp.destino %}
+                <div class="mb-3">
+                    <label class="text-muted" style="font-size: 0.75rem; text-transform: uppercase;">Destinatario</label>
+                    <div class="fw-500">{{ r.whatsapp.destino }}</div>
+                </div>
+                {% endif %}
+
+                {% if r.whatsapp.enviado %}
+                    <div class="p-3 rounded" style="background: #d1fae5;">
+                        <i class="bi bi-check-circle-fill text-success me-2"></i>
+                        <strong>WhatsApp enviado com sucesso</strong>
+                        <p class="mb-0 mt-1 text-muted" style="font-size: 0.85rem;">
+                            A mensagem e o documento foram entregues pelo WhatsApp.
+                        </p>
+                    </div>
+                {% elif r.whatsapp.erro %}
+                    <div class="p-3 rounded" style="background: #fef2f2;">
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="bi bi-x-circle-fill text-danger mt-1"></i>
+                            <div>
+                                <strong class="text-danger">{{ r.whatsapp.erro.titulo }}</strong>
+                                <p class="mb-2 mt-1" style="font-size: 0.9rem;">
+                                    {{ r.whatsapp.erro.explicacao }}
+                                </p>
+                                <div class="p-2 rounded" style="background: #fff; border: 1px solid #fecaca;">
+                                    <i class="bi bi-lightbulb text-warning me-1"></i>
+                                    <strong style="font-size: 0.85rem;">Como resolver:</strong>
+                                    <p class="mb-0 mt-1" style="font-size: 0.85rem;">
+                                        {{ r.whatsapp.erro.solucao }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Botoes de Acao -->
+<div class="mt-4 d-flex gap-2">
+    <a href="{{ url_for('log_page') }}" class="btn btn-light">
+        <i class="bi bi-arrow-left me-1"></i>Voltar ao Log
+    </a>
+    {% if r.status_geral in ('falha', 'erro', 'parcial') %}
+    <a href="{{ url_for('enviar_page') }}" class="btn btn-primary">
+        <i class="bi bi-arrow-repeat me-1"></i>Tentar Reenviar
+    </a>
+    {% endif %}
+    <button class="btn btn-outline-secondary" onclick="window.print()">
+        <i class="bi bi-printer me-1"></i>Imprimir Relatorio
+    </button>
+</div>
+{% endblock %}
