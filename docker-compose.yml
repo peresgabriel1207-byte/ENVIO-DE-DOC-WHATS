@@ -1,0 +1,60 @@
+# ============================================================
+# DOCKER COMPOSE - Robo de Envio de Documentos (TUDO LOCAL)
+#
+# Sobe a Evolution API (WhatsApp) + MongoDB no seu servidor.
+# Nenhum dado sai da sua rede - tudo roda na sua maquina.
+#
+# Uso:
+#   docker compose up -d
+#
+# Depois acesse:
+#   Painel do Robo:     http://localhost:5000
+#   Evolution API:      http://localhost:8080
+# ============================================================
+
+services:
+  # --- WhatsApp API (Evolution API - roda local) ---
+  evolution-api:
+    image: atendai/evolution-api:latest
+    container_name: evolution-api
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - AUTHENTICATION_API_KEY=SuaChaveSegura123
+      - AUTHENTICATION_EXPOSE_IN_FETCH_INSTANCES=true
+      - DATABASE_PROVIDER=mongodb
+      - DATABASE_CONNECTION_URI=mongodb://mongodb:27017/evolution
+      - DATABASE_CONNECTION_DB_PREFIX_NAME=evolution
+      - DATABASE_SAVE_DATA_INSTANCE=true
+      - DATABASE_SAVE_DATA_NEW_MESSAGE=true
+      - DATABASE_SAVE_DATA_CONTACTS=true
+      - DATABASE_SAVE_DATA_CHATS=true
+      - QRCODE_LIMIT=10
+      - LOG_LEVEL=WARN
+    volumes:
+      - evolution_instances:/evolution/instances
+    depends_on:
+      - mongodb
+    networks:
+      - robo-network
+
+  # --- Banco de dados local (MongoDB) ---
+  mongodb:
+    image: mongo:7
+    container_name: mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - robo-network
+
+volumes:
+  evolution_instances:
+  mongodb_data:
+
+networks:
+  robo-network:
+    driver: bridge

@@ -1,0 +1,26 @@
+# ============================================================
+# SERVICO SYSTEMD (Linux) - Robo de Envio de Documentos
+#
+# Instalacao:
+#   1. Edite o caminho abaixo (WorkingDirectory e ExecStart)
+#   2. Copie para: sudo cp robo-documentos.service /etc/systemd/system/
+#   3. Ative: sudo systemctl enable robo-documentos
+#   4. Inicie: sudo systemctl start robo-documentos
+#   5. Status: sudo systemctl status robo-documentos
+#   6. Logs: sudo journalctl -u robo-documentos -f
+# ============================================================
+
+[Unit]
+Description=Robo de Envio Automatico de Documentos Contabeis
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/envio-documentos
+ExecStart=/usr/bin/python3 /opt/envio-documentos/main.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

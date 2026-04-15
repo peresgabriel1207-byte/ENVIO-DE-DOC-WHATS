@@ -1,0 +1,18 @@
+{
+  "clientes": [
+    {
+      "cnpj": "12345678000199",
+      "nome": "Empresa Exemplo LTDA",
+      "whatsapp": "5511999999999",
+      "email": "contato@empresaexemplo.com.br",
+      "ativo": true
+    },
+    {
+      "cnpj": "98765432000111",
+      "nome": "Comercio ABC ME",
+      "whatsapp": "5511988888888",
+      "email": "financeiro@comercioabc.com.br",
+      "ativo": true
+    }
+  ]
+}
